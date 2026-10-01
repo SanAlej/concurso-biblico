@@ -1,0 +1,689 @@
+<!DOCTYPE html>
+<html lang="es" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Plataforma Concurso Bíblico - Registro de Puntos</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        bible: {
+                            primary: '#1e293b',
+                            accent: '#d97706', /* Gold accent */
+                            gold: '#fbbf24',
+                            dark: '#0f172a',
+                            light: '#f8fafc'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .transition-all-custom { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+        @keyframes pulse-gold {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+        .animate-gold { animation: pulse-gold 2s infinite; }
+    </style>
+</head>
+<body class="h-full bg-slate-900 text-slate-100 flex flex-col justify-between selection:bg-amber-500 selection:text-slate-900">
+
+    <header class="bg-slate-800/80 backdrop-blur border-b border-slate-700 sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center shadow-lg shadow-amber-500/20 text-slate-900 text-xl font-bold">
+                    <i class="fa-solid fa-book-bible"></i>
+                </div>
+                <div>
+                    <h1 class="font-bold text-lg tracking-tight bg-gradient-to-r from-amber-200 via-amber-400 to-amber-500 bg-clip-text text-transparent">LumenConcurso</h1>
+                    <p class="text-xs text-slate-400">Sistema Oficial de Puntuación Bíblica</p>
+                </div>
+            </div>
+            <div class="flex items-center space-x-2 sm:space-x-4">
+                <button onclick="openConfigModal()" class="px-3 py-2 bg-slate-700/60 hover:bg-slate-700 rounded-lg text-sm font-medium transition flex items-center space-x-2 text-slate-200 border border-slate-600/50">
+                    <i class="fa-solid fa-gear text-amber-400"></i>
+                    <span class="hidden sm:inline">Configurar Puntos</span>
+                </button>
+                <button onclick="exportData()" class="px-3 py-2 bg-slate-700/60 hover:bg-slate-700 rounded-lg text-sm font-medium transition flex items-center space-x-2 text-slate-200 border border-slate-600/50">
+                    <i class="fa-solid fa-download text-amber-400"></i>
+                    <span class="hidden sm:inline">Exportar</span>
+                </button>
+                <button onclick="confirmReset()" class="px-3 py-2 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 rounded-lg text-sm font-medium transition flex items-center space-x-2 border border-rose-500/30">
+                    <i class="fa-solid fa-rotate-right"></i>
+                    <span class="hidden sm:inline">Reiniciar</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
+        
+        <!-- Left Column: Teams & Point Management (2 cols on large screen) -->
+        <div class="lg:col-span-2 space-y-6">
+            
+            <!-- Quick Team Creator Card -->
+            <div class="bg-slate-800/90 border border-slate-700 rounded-2xl p-5 shadow-xl">
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="text-base font-semibold flex items-center space-x-2 text-slate-200">
+                        <i class="fa-solid fa-users text-amber-400"></i>
+                        <span>Gestión de Equipos / Participantes</span>
+                    </h2>
+                    <span id="team-count" class="text-xs bg-slate-700 text-amber-300 font-medium px-2.5 py-1 rounded-full">0 Equipos</span>
+                </div>
+                
+                <form id="team-form" onsubmit="handleTeamSubmit(event)" class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <input type="hidden" id="editing-team-id">
+                    <div class="sm:col-span-1">
+                        <label class="block text-xs font-medium text-slate-400 mb-1">Nombre del Equipo</label>
+                        <input type="text" id="team-name" required placeholder="Ej. Valientes de la Fe" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-amber-500 text-slate-200 placeholder-slate-500">
+                    </div>
+                    <div class="sm:col-span-1">
+                        <label class="block text-xs font-medium text-slate-400 mb-1">Categoría</label>
+                        <select id="team-category" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-amber-500 text-slate-200">
+                            <option value="Juvenil">Juvenil</option>
+                            <option value="Infantil">Infantil</option>
+                            <option value="Adultos">Adultos</option>
+                            <option value="General">General</option>
+                        </select>
+                    </div>
+                    <div class="flex items-end space-x-2">
+                        <button type="submit" id="team-submit-btn" class="w-full bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-semibold py-2.5 px-4 rounded-xl text-sm transition shadow-lg shadow-amber-600/20">
+                            <i class="fa-solid fa-plus mr-1"></i> Agregar
+                        </button>
+                        <button type="button" id="team-cancel-btn" onclick="resetTeamForm()" class="hidden px-3 py-2.5 bg-slate-700 hover:bg-slate-600 text-slate-300 rounded-xl text-sm transition">
+                            <i class="fa-solid fa-xmark"></i>
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Teams List & Point Actions Grid -->
+            <div class="bg-slate-800/90 border border-slate-700 rounded-2xl p-5 shadow-xl">
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="text-base font-semibold flex items-center space-x-2 text-slate-200">
+                        <i class="fa-solid fa-award text-amber-400"><span>Registro Rápido de Puntos</span></i>
+                    </h2>
+                    <div class="flex items-center space-x-2">
+                        <input type="text" id="search-team" oninput="renderTeams()" placeholder="Buscar equipo..." class="bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:border-amber-500 text-slate-200">
+                    </div>
+                </div>
+
+                <div id="teams-container" class="space-y-4 max-h-[600px] overflow-y-auto pr-1">
+                    <!-- Dynamically populated teams list -->
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Right Column: Live Leaderboard & Activity History -->
+        <div class="space-y-6">
+            
+            <!-- Leaderboard Card -->
+            <div class="bg-slate-800/90 border border-slate-700 rounded-2xl p-5 shadow-xl">
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="text-base font-semibold flex items-center space-x-2 text-slate-200">
+                        <i class="fa-solid fa-trophy text-amber-400"></i>
+                        <span>Tabla de Posiciones</span>
+                    </h2>
+                    <span class="text-xs text-slate-400 flex items-center space-x-1">
+                        <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                        <span>En vivo</span>
+                    </span>
+                </div>
+
+                <div id="leaderboard-container" class="space-y-3">
+                    <!-- Dynamically populated leaderboard -->
+                </div>
+            </div>
+
+            <!-- Recent Activity / History Card -->
+            <div class="bg-slate-800/90 border border-slate-700 rounded-2xl p-5 shadow-xl">
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="text-base font-semibold flex items-center space-x-2 text-slate-200">
+                        <i class="fa-solid fa-clock-rotate-left text-amber-400"></i>
+                        <span>Actividad Reciente</span>
+                    </h2>
+                    <button onclick="undoLastAction()" id="undo-btn" class="disabled:opacity-40 text-xs px-2.5 py-1 bg-slate-700 hover:bg-slate-600 rounded-lg transition text-slate-200 flex items-center space-x-1">
+                        <i class="fa-solid fa-rotate-left text-amber-400"></i>
+                        <span>Deshacer</span>
+                    </button>
+                </div>
+
+                <div id="history-container" class="space-y-2.5 max-h-[300px] overflow-y-auto pr-1 text-xs">
+                    <!-- Dynamically populated history -->
+                </div>
+            </div>
+
+        </div>
+
+    </main>
+
+    <!-- Config Modal -->
+    <div id="config-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
+        <div class="bg-slate-800 border border-slate-700 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-5">
+            <div class="flex items-center justify-between">
+                <h3 class="text-lg font-bold text-slate-100 flex items-center space-x-2">
+                    <i class="fa-solid fa-sliders text-amber-400"></i>
+                    <span>Configurar Valores de Puntos</span>
+                </h3>
+                <button onclick="closeConfigModal()" class="text-slate-400 hover:text-slate-200">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+            
+            <form id="config-form" onsubmit="saveConfig(event)" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-medium text-slate-300 mb-1">Puntualidad (+ Puntos)</label>
+                    <input type="number" id="cfg-punctuality" required min="1" max="100" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-amber-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-slate-300 mb-1">Biblia Física (+ Puntos)</label>
+                    <input type="number" id="cfg-bible" required min="1" max="100" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-amber-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-slate-300 mb-1">Participación (+ Puntos)</label>
+                    <input type="number" id="cfg-participation" required min="1" max="100" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-amber-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-slate-300 mb-1">Memorizar Versículos (+ Puntos)</label>
+                    <input type="number" id="cfg-memorization" required min="1" max="200" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-amber-500">
+                </div>
+
+                <div class="flex justify-end space-x-3 pt-2">
+                    <button type="button" onclick="closeConfigModal()" class="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-slate-300 rounded-xl text-sm transition">Cancelar</button>
+                    <button type="submit" class="px-4 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-semibold rounded-xl text-sm transition">Guardar Cambios</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Custom Prompt/Message Box Modal -->
+    <div id="message-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
+        <div class="bg-slate-800 border border-slate-700 rounded-2xl max-w-sm w-full p-6 shadow-2xl text-center space-y-4">
+            <div id="modal-icon" class="w-12 h-12 rounded-full bg-amber-500/20 text-amber-400 flex items-center justify-center mx-auto text-xl">
+                <i class="fa-solid fa-triangle-exclamation"></i>
+            </div>
+            <h3 id="modal-title" class="text-base font-bold text-slate-100">Confirmación</h3>
+            <p id="modal-text" class="text-xs text-slate-300">¿Estás seguro de realizar esta acción?</p>
+            <div id="modal-buttons" class="flex space-x-3 justify-center pt-2">
+                <!-- Dynamically assigned buttons -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-slate-900 border-t border-slate-800 py-4 text-center text-xs text-slate-500">
+        <p>Plataforma Concurso Bíblico &copy; 2026 &bull; Promoviendo la Palabra de Dios con excelencia</p>
+    </footer>
+
+    <script>
+        // Default State Configuration
+        let config = {
+            punctuality: 10,
+            bible: 10,
+            participation: 5,
+            memorization: 20
+        };
+
+        let teams = [];
+        let historyLog = [];
+
+        // Load data on startup
+        window.onload = function() {
+            loadFromLocalStorage();
+            renderAll();
+        };
+
+        function saveToLocalStorage() {
+            localStorage.setItem('bible_quiz_teams', JSON.stringify(teams));
+            localStorage.setItem('bible_quiz_config', JSON.stringify(config));
+            localStorage.setItem('bible_quiz_history', JSON.stringify(historyLog));
+        }
+
+        function loadFromLocalStorage() {
+            const savedTeams = localStorage.getItem('bible_quiz_teams');
+            const savedConfig = localStorage.getItem('bible_quiz_config');
+            const savedHistory = localStorage.getItem('bible_quiz_history');
+
+            if (savedTeams) teams = JSON.parse(savedTeams);
+            else {
+                // Default starter teams if empty
+                teams = [
+                    { id: 't1', name: 'Gedeón', category: 'Juvenil', points: 45 },
+                    { id: 't2', name: 'Los Bereanos', category: 'General', points: 65 },
+                    { id: 't3', name: 'Josué y Caleb', category: 'Infantil', points: 30 }
+                ];
+            }
+
+            if (savedConfig) config = JSON.parse(savedConfig);
+            if (savedHistory) historyLog = JSON.parse(savedHistory);
+        }
+
+        function renderAll() {
+            renderTeams();
+            renderLeaderboard();
+            renderHistory();
+            updateTeamCount();
+        }
+
+        // Team Management
+        function handleTeamSubmit(e) {
+            e.preventDefault();
+            const idInput = document.getElementById('editing-team-id').value;
+            const nameInput = document.getElementById('team-name').value.trim();
+            const categoryInput = document.getElementById('team-category').value;
+
+            if (!nameInput) return;
+
+            if (idInput) {
+                // Edit team
+                const team = teams.find(t => t.id === idInput);
+                if (team) {
+                    team.name = nameInput;
+                    team.category = categoryInput;
+                }
+                showToast('Equipo actualizado exitosamente');
+            } else {
+                // Create team
+                const newTeam = {
+                    id: 'team_' + Date.now(),
+                    name: nameInput,
+                    category: categoryInput,
+                    points: 0
+                };
+                teams.push(newTeam);
+                addHistoryEntry(`Equipo creado: ${nameInput}`, 0, '-', newTeam.id);
+                showToast('Equipo registrado exitosamente');
+            }
+
+            resetTeamForm();
+            saveToLocalStorage();
+            renderAll();
+        }
+
+        function editTeam(id) {
+            const team = teams.find(t => t.id === id);
+            if (!team) return;
+            document.getElementById('editing-team-id').value = team.id;
+            document.getElementById('team-name').value = team.name;
+            document.getElementById('team-category').value = team.category;
+            document.getElementById('team-submit-btn').innerHTML = '<i class="fa-solid fa-check mr-1"></i> Actualizar';
+            document.getElementById('team-cancel-btn').classList.remove('hidden');
+            document.getElementById('team-name').focus();
+        }
+
+        function resetTeamForm() {
+            document.getElementById('team-form').reset();
+            document.getElementById('editing-team-id').value = '';
+            document.getElementById('team-submit-btn').innerHTML = '<i class="fa-solid fa-plus mr-1"></i> Agregar';
+            document.getElementById('team-cancel-btn').classList.add('hidden');
+        }
+
+        function deleteTeam(id) {
+            const team = teams.find(t => t.id === id);
+            if (!team) return;
+
+            showModal(
+                'Eliminar Equipo',
+                `¿Deseas eliminar al equipo "${team.name}"? Se perderán todos sus puntos.`,
+                'fa-triangle-exclamation',
+                [
+                    { text: 'Cancelar', class: 'bg-slate-700 hover:bg-slate-600 text-slate-300', onclick: 'closeModal()' },
+                    { text: 'Eliminar', class: 'bg-rose-600 hover:bg-rose-500 text-white font-semibold', onclick: `executeDeleteTeam('${id}')` }
+                ]
+            );
+        }
+
+        function executeDeleteTeam(id) {
+            teams = teams.filter(t => t.id !== id);
+            saveToLocalStorage();
+            renderAll();
+            closeModal();
+            showToast('Equipo eliminado');
+        }
+
+        function updateTeamCount() {
+            document.getElementById('team-count').innerText = `${teams.length} Equipos`;
+        }
+
+        // Points Management
+        function addPoints(teamId, type) {
+            const team = teams.find(t => t.id === teamId);
+            if (!team) return;
+
+            let pts = 0;
+            let label = '';
+
+            switch(type) {
+                case 'punctuality':
+                    pts = config.punctuality;
+                    label = 'Puntualidad';
+                    break;
+                case 'bible':
+                    pts = config.bible;
+                    label = 'Biblia Física';
+                    break;
+                case 'participation':
+                    pts = config.participation;
+                    label = 'Participación';
+                    break;
+                case 'memorization':
+                    pts = config.memorization;
+                    label = 'Memorizar Versículos';
+                    break;
+            }
+
+            team.points += pts;
+            
+            // Add history entry with undo metadata
+            addHistoryEntry(`+${pts} pts por ${label} a ${team.name}`, pts, team.id, type);
+
+            saveToLocalStorage();
+            renderAll();
+            showToast(`+${pts} pts a ${team.name}`);
+        }
+
+        function addHistoryEntry(description, points, teamId, actionType) {
+            const entry = {
+                id: 'hist_' + Date.now(),
+                text: description,
+                points: points,
+                teamId: teamId,
+                actionType: actionType,
+                timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+            };
+            historyLog.unshift(entry);
+            // Keep max 50 history logs
+            if (historyLog.length > 50) historyLog.pop();
+        }
+
+        function undoLastAction() {
+            if (historyLog.length === 0) return;
+            const last = historyLog[0];
+            
+            if (last.teamId && last.teamId !== '-' && last.points > 0) {
+                const team = teams.find(t => t.id === last.teamId);
+                if (team) {
+                    team.points = Math.max(0, team.points - last.points);
+                }
+            }
+
+            historyLog.shift();
+            saveToLocalStorage();
+            renderAll();
+            showToast('Última acción deshecha');
+        }
+
+        // Render Functions
+        function renderTeams() {
+            const container = document.getElementById('teams-container');
+            const searchVal = document.getElementById('search-team').value.toLowerCase();
+            
+            const filtered = teams.filter(t => t.name.toLowerCase().includes(searchVal) || t.category.toLowerCase().includes(searchVal));
+
+            if (filtered.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-8 text-slate-500">
+                        <i class="fa-solid fa-users-slash text-3xl mb-2"></i>
+                        <p class="text-xs">No se encontraron equipos registrados</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = filtered.map(team => `
+                <div class="bg-slate-900/60 border border-slate-700/60 rounded-xl p-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-3 hover:border-slate-600 transition">
+                    <div class="flex items-center space-x-3">
+                        <div class="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400 font-bold">
+                            ${team.name.charAt(0).toUpperCase()}
+                        </div>
+                        <div>
+                            <div class="flex items-center space-x-2">
+                                <h3 class="font-semibold text-slate-200 text-sm">${team.name}</h3>
+                                <span class="text-[10px] bg-slate-800 text-slate-400 border border-slate-700 px-2 py-0.5 rounded-md">${team.category}</span>
+                            </div>
+                            <p class="text-xs text-amber-400 font-semibold mt-0.5">${team.points} Puntos Totales</p>
+                        </div>
+                    </div>
+
+                    <!-- Point Quick Buttons -->
+                    <div class="flex flex-wrap items-center gap-1.5 w-full md:w-auto justify-end">
+                        <button onclick="addPoints('${team.id}', 'punctuality')" title="Puntualidad (+${config.punctuality})" class="px-2.5 py-1.5 bg-slate-800 hover:bg-amber-500 hover:text-slate-950 text-slate-300 rounded-lg text-xs font-medium border border-slate-700 transition flex items-center space-x-1">
+                            <i class="fa-solid fa-clock"></i>
+                            <span>+${config.punctuality}</span>
+                        </button>
+                        <button onclick="addPoints('${team.id}', 'bible')" title="Biblia física (+${config.bible})" class="px-2.5 py-1.5 bg-slate-800 hover:bg-amber-500 hover:text-slate-950 text-slate-300 rounded-lg text-xs font-medium border border-slate-700 transition flex items-center space-x-1">
+                            <i class="fa-solid fa-book"></i>
+                            <span>+${config.bible}</span>
+                        </button>
+                        <button onclick="addPoints('${team.id}', 'participation')" title="Participación (+${config.participation})" class="px-2.5 py-1.5 bg-slate-800 hover:bg-amber-500 hover:text-slate-950 text-slate-300 rounded-lg text-xs font-medium border border-slate-700 transition flex items-center space-x-1">
+                            <i class="fa-solid fa-hands-clapping"></i>
+                            <span>+${config.participation}</span>
+                        </button>
+                        <button onclick="addPoints('${team.id}', 'memorization')" title="Memorizar versículos (+${config.memorization})" class="px-2.5 py-1.5 bg-slate-800 hover:bg-amber-500 hover:text-slate-950 text-slate-300 rounded-lg text-xs font-medium border border-slate-700 transition flex items-center space-x-1">
+                            <i class="fa-solid fa-brain"></i>
+                            <span>+${config.memorization}</span>
+                        </button>
+                        
+                        <div class="h-5 w-[1px] bg-slate-700 mx-1 hidden md:block"></div>
+
+                        <button onclick="editTeam('${team.id}')" class="p-1.5 bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-slate-200 rounded-lg transition" title="Editar">
+                            <i class="fa-solid fa-pen text-xs"></i>
+                        </button>
+                        <button onclick="deleteTeam('${team.id}')" class="p-1.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 rounded-lg transition" title="Eliminar">
+                            <i class="fa-solid fa-trash text-xs"></i>
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function renderLeaderboard() {
+            const container = document.getElementById('leaderboard-container');
+            // Sort teams descending by points
+            const sorted = [...teams].sort((a, b) => b.points - a.points);
+
+            if (sorted.length === 0) {
+                container.innerHTML = `<p class="text-xs text-slate-500 text-center py-4">Sin equipos para mostrar en el ranking</p>`;
+                return;
+            }
+
+            container.innerHTML = sorted.map((team, index) => {
+                let badgeColor = 'bg-slate-900 text-slate-400 border-slate-700';
+                let iconHtml = `<span class="text-xs font-bold w-6 text-center">${index + 1}</span>`;
+
+                if (index === 0) {
+                    badgeColor = 'bg-amber-500/10 border-amber-500/40 text-amber-300';
+                    iconHtml = `<i class="fa-solid fa-medal text-amber-400 text-base"></i>`;
+                } else if (index === 1) {
+                    badgeColor = 'bg-slate-300/10 border-slate-300/30 text-slate-200';
+                    iconHtml = `<i class="fa-solid fa-medal text-slate-300 text-base"></i>`;
+                } else if (index === 2) {
+                    badgeColor = 'bg-amber-700/10 border-amber-700/30 text-amber-600';
+                    iconHtml = `<i class="fa-solid fa-medal text-amber-600 text-base"></i>`;
+                }
+
+                return `
+                    <div class="flex items-center justify-between p-3 rounded-xl border ${badgeColor} transition-all-custom">
+                        <div class="flex items-center space-x-3">
+                            <div class="flex items-center justify-center w-7">
+                                ${iconHtml}
+                            </div>
+                            <div>
+                                <h4 class="font-semibold text-slate-100 text-sm">${team.name}</h4>
+                                <span class="text-[10px] text-slate-400">${team.category}</span>
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <span class="font-bold text-amber-400 text-sm">${team.points}</span>
+                            <span class="text-[10px] text-slate-400 block">pts</span>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function renderHistory() {
+            const container = document.getElementById('history-container');
+            const undoBtn = document.getElementById('undo-btn');
+
+            undoBtn.disabled = historyLog.length === 0;
+
+            if (historyLog.length === 0) {
+                container.innerHTML = `<p class="text-xs text-slate-500 text-center py-3">No hay actividad reciente</p>`;
+                return;
+            }
+
+            container.innerHTML = historyLog.slice(0, 15).map(item => `
+                <div class="p-2.5 bg-slate-900/50 border border-slate-700/40 rounded-lg flex items-center justify-between text-slate-300">
+                    <div>
+                        <p class="font-medium">${item.text}</p>
+                        <span class="text-[10px] text-slate-500">${item.timestamp}</span>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Configuration Modal
+        function openConfigModal() {
+            document.getElementById('cfg-punctuality').value = config.punctuality;
+            document.getElementById('cfg-bible').value = config.bible;
+            document.getElementById('cfg-participation').value = config.participation;
+            document.getElementById('cfg-memorization').value = config.memorization;
+            document.getElementById('config-modal').classList.remove('hidden');
+        }
+
+        function closeConfigModal() {
+            document.getElementById('config-modal').classList.add('hidden');
+        }
+
+        function saveConfig(e) {
+            e.preventDefault();
+            config.punctuality = parseInt(document.getElementById('cfg-punctuality').value) || 10;
+            config.bible = parseInt(document.getElementById('cfg-bible').value) || 10;
+            config.participation = parseInt(document.getElementById('cfg-participation').value) || 5;
+            config.memorization = parseInt(document.getElementById('cfg-memorization').value) || 20;
+
+            saveToLocalStorage();
+            closeConfigModal();
+            renderAll();
+            showToast('Configuración guardada exitosamente');
+        }
+
+        // Reset All
+        function confirmReset() {
+            showModal(
+                'Reiniciar Puntajes',
+                '¿Estás seguro de reiniciar todos los puntajes a 0? Los equipos se mantendrán.',
+                'fa-rotate-right',
+                [
+                    { text: 'Cancelar', class: 'bg-slate-700 hover:bg-slate-600 text-slate-300', onclick: 'closeModal()' },
+                    { text: 'Sí, reiniciar', class: 'bg-rose-600 hover:bg-rose-500 text-white font-semibold', onclick: 'executeReset()' }
+                ]
+            );
+        }
+
+        function executeReset() {
+            teams.forEach(t => t.points = 0);
+            historyLog = [];
+            addHistoryEntry('Puntajes reiniciados a 0', 0, '-', 'reset');
+            saveToLocalStorage();
+            renderAll();
+            closeModal();
+            showToast('Puntajes reiniciados');
+        }
+
+        // Export Data (JSON/CSV)
+        function exportData() {
+            showModal(
+                'Exportar Datos',
+                'Selecciona el formato de exportación para el resumen del concurso:',
+                'fa-download',
+                [
+                    { text: 'JSON', class: 'bg-slate-700 hover:bg-slate-600 text-slate-200', onclick: 'exportJSON()' },
+                    { text: 'CSV (Excel)', class: 'bg-amber-500 hover:bg-amber-400 text-slate-950 font-semibold', onclick: 'exportCSV()' },
+                    { text: 'Cerrar', class: 'bg-slate-800 text-slate-400', onclick: 'closeModal()' }
+                ]
+            );
+        }
+
+        function exportJSON() {
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify({ teams, config, historyLog }, null, 2));
+            const downloadAnchor = document.createElement('a');
+            downloadAnchor.setAttribute("href", dataStr);
+            downloadAnchor.setAttribute("download", `concurso_biblico_${new Date().toISOString().slice(0,10)}.json`);
+            document.body.appendChild(downloadAnchor);
+            downloadAnchor.click();
+            downloadAnchor.remove();
+            closeModal();
+            showToast('Datos exportados en JSON');
+        }
+
+        function exportCSV() {
+            let csvContent = "data:text/csv;charset=utf-8,Equipo,Categoria,Puntos\n";
+            teams.forEach(t => {
+                csvContent += `"${t.name}","${t.category}",${t.points}\n`;
+            });
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", `ranking_concurso_${new Date().toISOString().slice(0,10)}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            closeModal();
+            showToast('Ranking exportado en CSV');
+        }
+
+        // Modal Helpers
+        function showModal(title, text, iconClass, buttons) {
+            document.getElementById('modal-title').innerText = title;
+            document.getElementById('modal-text').innerText = text;
+            document.getElementById('modal-icon').innerHTML = `<i class="fa-solid ${iconClass}"></i>`;
+            
+            const btnContainer = document.getElementById('modal-buttons');
+            btnContainer.innerHTML = buttons.map(b => `
+                <button onclick="${b.onclick}" class="px-4 py-2 rounded-xl text-xs transition ${b.class}">${b.text}</button>
+            `).join('');
+
+            document.getElementById('message-modal').classList.remove('hidden');
+        }
+
+        function closeModal() {
+            document.getElementById('message-modal').classList.add('hidden');
+        }
+
+        // Toast Notification
+        function showToast(message) {
+            const existing = document.getElementById('toast-notification');
+            if (existing) existing.remove();
+
+            const toast = document.createElement('div');
+            toast.id = 'toast-notification';
+            toast.className = 'fixed bottom-5 right-5 z-50 bg-slate-800 border border-slate-700 text-slate-100 px-4 py-3 rounded-xl shadow-2xl flex items-center space-x-3 text-xs animate-bounce';
+            toast.innerHTML = `
+                <i class="fa-solid fa-circle-check text-amber-400 text-base"></i>
+                <span class="font-medium">${message}</span>
+            `;
+            document.body.appendChild(toast);
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transition = 'opacity 0.5s ease';
+                setTimeout(() => toast.remove(), 500);
+            }, 3000);
+        }
+    </script>
+</body>
+</html>
